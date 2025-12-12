@@ -1,59 +1,151 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# LangIT (E-learning) Backend
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Laravel 11 + Laravel Sail を使った e-learning バックエンド。  
+マルチテナントは **C-1 方式（サブドメインごとに別 DB）** を採用。ベースドメインは `langit.local`。
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Requirements
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+推奨開発環境（現状の前提）
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+-   Windows 11
+-   WSL2 (Ubuntu)
+-   Docker Desktop
+-   Git
+-   Node.js / npm（Vite）
+-   （任意）VSCode
 
-## Learning Laravel
+このプロジェクトは **Laravel Sail** で動かす前提。
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+---
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Setup (First time)
 
-## Laravel Sponsors
+> 以降のコマンドは、基本的に **WSL 上**で実行する想定（例：`/mnt/c/dev_LangIT`）。
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### 1) Install dependencies
 
-### Premium Partners
+    composer install
+    npm install
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### 2) Environment
 
-## Contributing
+`.env` を作成して、最低限この値を設定：
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+-   `TENANT_BASE_DOMAIN=langit.local`（C-1 用ベースドメイン）
+-   `TENANT_DB_DATABASE=demo_school_db`（例）
+-   `JWT_SECRET=...`（JWT 用のランダムな長い文字列）
 
-## Code of Conduct
+### 3) Start containers
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+    ./vendor/bin/sail up -d
 
-## Security Vulnerabilities
+### 4) Migrate (main DB)
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+    ./vendor/bin/sail artisan migrate
 
-## License
+---
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## Multi-tenant (C-1) Runbook
+
+### 1) hosts 設定（Windows）
+
+`C:\Windows\System32\drivers\etc\hosts` に追記：
+
+    127.0.0.1 langit.local
+    127.0.0.1 demo.langit.local
+
+反映後：
+
+    ipconfig /flushdns
+
+（任意）WSL 側にも入れる場合：
+
+    echo "127.0.0.1 demo.langit.local" | sudo tee -a /etc/hosts
+
+### 2) demo テナント作成（tenants テーブル）
+
+    ./vendor/bin/sail artisan db:seed --class=TenantSeeder
+
+### 3) テナント DB 作成（MySQL 内）
+
+    docker exec -it dev_langit-mysql-1 mysql -uroot -p
+    # パスワードは .env の DB_PASSWORD（例：password）
+
+    CREATE DATABASE IF NOT EXISTS demo_school_db
+      CHARACTER SET utf8mb4
+      COLLATE utf8mb4_unicode_ci;
+
+    GRANT ALL PRIVILEGES ON demo_school_db.* TO 'sail'@'%';
+    FLUSH PRIVILEGES;
+    exit;
+
+### 4) テナント切替の動作確認
+
+`/tenant-test` で現在接続中の tenant DB 名を返す簡易ルートがある想定。
+
+-   `http://localhost/tenant-test` → `Tenant DB: tenant_dummy`（Host により切替が効かない場合）
+-   `http://demo.langit.local/...` のように **Host が demo サブドメイン**になるアクセスで tenant 解決・接続切替を行う想定
+
+---
+
+## Major APIs
+
+### Auth
+
+-   `POST /api/auth/login`
+-   `POST /api/auth/password`（要 JWT）
+
+### Student (role:student)
+
+-   `GET /api/progress-rate`
+-   `GET /api/courses`
+-   `GET /api/courses/{course}`
+
+### Video (F03)
+
+-   `GET /api/video?video_id={id}`
+-   `POST /api/videos/{video}/event`（play/pause/seek + position）
+-   `POST /api/videos/{video}/complete`（watch_time）
+
+### Test (F05)
+
+-   `GET /api/tests/{test}`
+-   `POST /api/tests/{test}/score`（normal / review）
+
+### Question Tags
+
+-   `GET /api/question-tags`（keyword 検索あり）
+-   `GET /api/question-tags/stats?test_id=&course_id=&chapter_id=&days=`
+
+### Admin (role:admin)
+
+-   `GET /api/admin/users`
+-   `POST /api/admin/users`
+-   `PUT /api/admin/users/{id}`
+-   `PUT /api/admin/users/{id}/password`
+
+### Admin: Question Tags
+
+-   `GET /api/admin/question-tags`
+-   `POST /api/admin/question-tags`
+-   `PUT /api/admin/question-tags/{tag}`
+-   `DELETE /api/admin/question-tags/{tag}`
+-   `PUT /api/admin/tests/{test}/questions/{question}/tags`（問題へのタグ付け）
+
+---
+
+## Notes
+
+-   `user_id` はクライアントから受け取らず、JWT から取得する設計。
+-   動画の完了判定は **80%**（`VideoProgressService`）。
+
+---
+
+## README 更新 →Git に反映
+
+    git checkout -b feature/readme
+    git add README.md
+    git commit -m "docs: update README"
+    git push -u origin feature/readme
