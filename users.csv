@@ -1,0 +1,5 @@
+id,name,email,role,status,student_number,grade,class_name,course,enrolled_at,left_at,last_login_at,created_at,updated_at
+1,デモ管理者,admin@demo-school.test,admin,active,,,,,,,"2025-12-11 14:34:11","2025-12-07 16:54:33","2025-12-11 14:34:11"
+2,デモ生徒01（編集済み）,student01@demo-school.test,student,active,,2,B,,,,,"2025-12-08 12:23:29","2025-12-08 13:16:30"
+3,デモ生徒02（PW変更テスト用）,student02@demo-school.test,student,active,,,,,,,,"2025-12-08 13:33:26","2025-12-08 14:30:27"
+4,デモ生徒1,student1@demo-school.test,student,active,,,,,,,"2025-12-11 14:56:59","2025-12-09 07:53:09","2025-12-11 14:56:59"
