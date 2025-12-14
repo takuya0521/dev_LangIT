@@ -15,6 +15,8 @@ use App\Http\Controllers\Api\QuestionTag\QuestionTagController;
 use App\Http\Controllers\Api\Auth\LoginHistoryController;
 use App\Http\Controllers\Api\Admin\UserLoginHistoryController;
 use App\Http\Controllers\Api\Platform\TenantController;
+use App\Http\Controllers\Api\MockTest\MockTestController;
+
 
 Route::post('auth/login', LoginController::class);
 
@@ -31,6 +33,21 @@ Route::middleware('auth.jwt')
 Route::get('/debug/server-error', function () {
     throw new \RuntimeException('debug server error');
 });
+
+Route::middleware(['auth.jwt', 'role:student'])->group(function () {
+    // F06_01 模擬試験設問取得（API40）
+    Route::get('/mock-tests/{mock_test}', [MockTestController::class, 'show'])
+        ->whereNumber('mock_test');
+
+    // F06_01 採点（API41）
+    Route::post('/mock-tests/{mock_test}/score', [MockTestController::class, 'score'])
+        ->whereNumber('mock_test');
+
+    // F06_02（任意）直近結果
+    Route::get('/mock-tests/{mock_test}/result', [MockTestController::class, 'latestResult'])
+        ->whereNumber('mock_test');
+});
+
 
 // --------------------------
 // 問題タグ系 API
