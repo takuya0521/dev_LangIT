@@ -14,7 +14,7 @@ return new class extends Migration {
             $table->text('description')->nullable();
 
             // 仕様：APIレスポンスの time_limit（単位は秒想定）
-            $table->unsignedInteger('time_limit_seconds')->default(1800); // 30分
+            $table->unsignedInteger('time_limit')->default(1800); // 30分
 
             // 合否基準（スコア%）
             $table->unsignedTinyInteger('pass_score')->default(60);
