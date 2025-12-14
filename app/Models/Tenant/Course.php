@@ -12,8 +12,31 @@ class Course extends TenantModel
         'title',
         'description',
         'thumbnail_url',
+        'base_course_id',
+        'version',
+        'is_latest',
+        'published_at',
         // 必要に応じて他のカラムも
     ];
+
+    protected $casts = [
+        'is_active' => 'boolean',
+    ];
+
+    public function baseCourse()
+    {
+        return $this->belongsTo(self::class, 'base_course_id');
+    }
+
+    public function versions()
+    {
+        return $this->hasMany(self::class, 'base_course_id');
+    }
+
+    public function scopeActive($query)
+    {
+        return $query->where('is_active', true);
+    }
 
     public function chapters()
     {
@@ -24,4 +47,15 @@ class Course extends TenantModel
     {
         return $this->hasMany(UserCourse::class);
     }
+
+        public function scopeLatestVersion($query)
+    {
+        return $query->where('is_latest', true);
+    }
+
+    public function scopeOfBaseCourse($query, int $baseCourseId)
+    {
+        return $query->where('base_course_id', $baseCourseId);
+    }
+
 }

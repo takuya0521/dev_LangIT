@@ -112,6 +112,10 @@ Route::middleware(['auth.jwt', 'role:student'])->group(function () {
     // F02_02 コース詳細取得（API11）
     Route::get('/courses/{course}', [CourseController::class, 'show'])
         ->whereNumber('course');
+
+    Route::get('/courses/{course}/timeline', [CourseController::class, 'timeline'])
+    ->whereNumber('course');
+
 });
 
 // 管理者用アカウント管理 API
