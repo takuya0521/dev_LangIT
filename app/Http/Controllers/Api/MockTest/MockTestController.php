@@ -83,4 +83,37 @@ class MockTestController extends Controller
             return response()->json(['message' => '結果を取得できませんでした。'], 500);
         }
     }
+
+    public function results(Request $request, int $mockTestId)
+    {
+        $user = $request->user();
+        $limit = (int) $request->query('limit', 20);
+        $limit = max(1, min($limit, 100)); // 1〜100に丸める
+
+        $items = $this->mockTestService->listResultsForUser($user->id, $mockTestId, $limit);
+
+        // 一覧は軽く（detailsなし）
+        return response()->json($items->map(function ($r) {
+            return [
+                'mock_test_result_id' => $r->id,
+                'mock_test_id' => $r->mock_test_id,
+                'score' => $r->score,
+                'pass' => (bool) $r->pass,
+                'submitted_at' => optional($r->created_at)?->toISOString(),
+            ];
+        })->values(), Response::HTTP_OK);
+    }
+
+    public function showResult(Request $request, int $resultId)
+    {
+        $user = $request->user();
+
+        $result = $this->mockTestService->getResultByIdForUser($user->id, $resultId);
+
+        if (!$result) {
+            return response()->json(['message' => '結果が見つかりません。'], 404);
+        }
+
+        return response()->json($this->mockTestService->formatResultResponse($result), 200);
+    }
 }

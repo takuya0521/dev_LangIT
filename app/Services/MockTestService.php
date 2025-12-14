@@ -43,7 +43,7 @@ class MockTestService
         return [
             'mock_test_id' => $mockTest->id,
             'title'        => $mockTest->title,
-            'time_limit'   => $mockTest->time_limit_seconds,
+            'time_limit'   => $mockTest->time_limit,
             'questions'    => $mockTest->questions->map(function ($q) {
                 return [
                     'question_id' => $q->id,
@@ -181,5 +181,75 @@ class MockTestService
             ->with('details')
             ->latest()
             ->first();
+    }
+
+    public function getLatestResultForUser(int $userId, int $mockTestId): ?MockTestResult
+    {
+        return MockTestResult::query()
+            ->where('user_id', $userId)
+            ->where('mock_test_id', $mockTestId)
+            ->latest('id')
+            ->with([
+                'mockTest:id,title,time_limit',
+                'details:mock_test_result_id,mock_test_question_id,selected_choice_id,is_correct,correct_choice_id',
+                'details.question:id,mock_test_id,text',
+                'details.selectedChoice:id,mock_test_question_id,text',
+                'details.correctChoice:id,mock_test_question_id,text',
+            ])
+            ->first();
+    }
+
+    public function getResultByIdForUser(int $userId, int $resultId): ?MockTestResult
+    {
+        return MockTestResult::query()
+            ->where('id', $resultId)
+            ->where('user_id', $userId)
+            ->with([
+                'mockTest:id,title,time_limit',
+                'details:mock_test_result_id,mock_test_question_id,selected_choice_id,is_correct,correct_choice_id',
+                'details.question:id,mock_test_id,text',
+                'details.selectedChoice:id,mock_test_question_id,text',
+                'details.correctChoice:id,mock_test_question_id,text',
+            ])
+            ->first();
+    }
+
+    public function listResultsForUser(int $userId, int $mockTestId, int $limit = 20)
+    {
+        return MockTestResult::query()
+            ->where('user_id', $userId)
+            ->where('mock_test_id', $mockTestId)
+            ->latest('id')
+            ->limit($limit)
+            ->get(['id','mock_test_id','score','pass','created_at']);
+    }
+
+    public function formatResultResponse(MockTestResult $result): array
+    {
+        $total = $result->details->count();
+        $correct = $result->details->where('is_correct', true)->count();
+
+        return [
+            'mock_test_result_id' => $result->id,
+            'mock_test_id' => $result->mock_test_id,
+            'title' => optional($result->mockTest)->title,
+            'time_limit' => optional($result->mockTest)->time_limit,
+            'score' => $result->score,
+            'pass' => (bool) $result->pass,
+            'correct_count' => $correct,
+            'total_count' => $total,
+            'submitted_at' => optional($result->created_at)?->toISOString(),
+            'details' => $result->details->map(function ($d) {
+                return [
+                    'question_id' => $d->mock_test_question_id,
+                    'question_text' => optional($d->question)->text,
+                    'selected_choice_id' => $d->selected_choice_id,
+                    'selected_choice_text' => optional($d->selectedChoice)->text,
+                    'correct_choice_id' => $d->correct_choice_id,
+                    'correct_choice_text' => optional($d->correctChoice)->text,
+                    'correct' => (bool) $d->is_correct,
+                ];
+            })->values(),
+        ];
     }
 }

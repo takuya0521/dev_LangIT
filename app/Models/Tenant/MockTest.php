@@ -11,7 +11,7 @@ class MockTest extends TenantModel
         'course_id',
         'title',
         'description',
-        'time_limit_seconds',
+        'time_limit',
         'pass_score',
         'is_active',
     ];
