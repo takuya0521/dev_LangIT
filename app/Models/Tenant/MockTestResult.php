@@ -26,13 +26,13 @@ class MockTestResult extends TenantModel
         'finished_at' => 'datetime',
     ];
 
-    public function mockTest(): BelongsTo
-    {
-        return $this->belongsTo(MockTest::class);
-    }
-
     public function details(): HasMany
     {
-        return $this->hasMany(MockTestResultDetail::class);
+        return $this->hasMany(MockTestResultDetail::class, 'mock_test_result_id');
+    }
+
+    public function mockTest(): BelongsTo
+    {
+        return $this->belongsTo(MockTest::class, 'mock_test_id');
     }
 }

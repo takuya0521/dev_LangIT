@@ -46,6 +46,10 @@ Route::middleware(['auth.jwt', 'role:student'])->group(function () {
     // F06_02（任意）直近結果
     Route::get('/mock-tests/{mock_test}/result', [MockTestController::class, 'latestResult'])
         ->whereNumber('mock_test');
+    Route::get('/mock-tests/{mock_test}/results', [MockTestController::class, 'results'])
+        ->whereNumber('mock_test');
+    Route::get('/mock-test-results/{result}', [MockTestController::class, 'showResult'])
+        ->whereNumber('result');
 });
 
 
